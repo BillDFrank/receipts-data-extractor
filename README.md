@@ -1,3 +1,4 @@
+[![Test API](https://github.com/BillDFrank/receipts-data-extractor/actions/workflows/test-api.yml/badge.svg)](https://github.com/BillDFrank/receipts-data-extractor/actions/workflows/test-api.yml)
 # Pingo Receipt Parser API
 
 A robust FastAPI-based service for extracting and parsing product information from Portuguese supermarket receipts, with specialized support for Pingo Doce receipts. Built with modern Python tools for reliable PDF processing and structured data extraction.
