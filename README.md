@@ -237,6 +237,7 @@ Set the following secrets in your GitHub repository:
 - `VPS_HOST`: Your VPS IP address or domain
 - `VPS_USERNAME`: SSH username
 - `VPS_SSH_KEY`: Private SSH key for authentication
+- `VPS_SSH_PASSPHRASE`: Passphrase for the SSH key (if protected)
 
 #### Deployment Process
 
