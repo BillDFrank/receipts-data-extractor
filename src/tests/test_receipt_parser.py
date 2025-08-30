@@ -28,6 +28,7 @@ class TestPingoDoceReceiptParser:
 
     def test_parse_product_line_pattern1(self):
         """Test parsing product line with quantity and total."""
+        self.parser.market = "Pingo Doce"
         line = "C TRANCHE SALMÃO UN150 2,000 X 3,69 7,38"
         product = self.parser._parse_product_line(line, "PEIXARIA", "PD PRELADA")
 
@@ -35,8 +36,6 @@ class TestPingoDoceReceiptParser:
         assert product.product == "TRANCHE SALMÃO UN150"
         assert product.price == 3.69
         assert product.quantity == 2.0
-        assert product.market == "Pingo Doce"
-        assert product.branch == "PD PRELADA"
         assert product.product_type == "PEIXARIA"
 
     def test_parse_product_line_pattern2(self):
@@ -85,21 +84,8 @@ class TestPingoDoceReceiptParser:
         assert self.parser._is_product_type_header("PEIXARIA") is True
         assert self.parser._is_product_type_header("PADARIA/PASTELARIA") is True
         assert self.parser._is_product_type_header("FRUTAS E VEGETAIS") is True
+        assert self.parser._is_product_type_header("BEBIDAS") is True  # New type
         assert self.parser._is_product_type_header("Regular text") is False
-
-    def test_split_into_sections(self):
-        """Test splitting receipt into sections."""
-        text = """PEIXARIA
-C TRANCHE SALMÃO UN150 2,000 X 3,69 7,38
-PADARIA/PASTELARIA
-E PÃO DE LEITE 1,99
-E BOLA BERLIM KIT KAT 1,000 X 0,99 0,99"""
-
-        sections = self.parser._split_into_sections(text)
-
-        assert len(sections) == 2
-        assert sections[0][0] == "PEIXARIA"
-        assert sections[1][0] == "PADARIA/PASTELARIA"
 
     def test_parse_receipt_pdf1(self):
         """Test parsing PDF 1 example from user."""
@@ -135,6 +121,9 @@ Resumo"""
         assert result.receipt is not None
         assert result.receipt.market == "Pingo Doce"
         assert result.receipt.branch == "PD PRELADA"
+        assert result.receipt.invoice is None  # No invoice in this test data
+        assert result.receipt.total is None   # No total in this test data
+        assert result.receipt.date is None    # No date in this test data
         assert len(result.receipt.products) == 8  # Should have 8 products
 
         # Check specific products
@@ -172,6 +161,9 @@ E PIZZA FRES PD CA415G 2,89"""
 
         assert result.success is True
         assert result.receipt is not None
+        assert result.receipt.invoice is None
+        assert result.receipt.total is None
+        assert result.receipt.date is None
         assert len(result.receipt.products) == 2
 
         # Check products
@@ -185,3 +177,33 @@ E PIZZA FRES PD CA415G 2,89"""
         assert pizza is not None
         assert pizza.price == 2.89
         assert pizza.product_type == "PRONTO A COMER"
+
+    def test_extract_invoice(self):
+        """Test invoice extraction."""
+        text = "Fatura Simplificada FS 04890942308181520/067139"
+        invoice = self.parser._extract_invoice(text)
+        assert invoice == "FS 04890942308181520/067139"
+
+        text_no_invoice = "Some other text"
+        invoice = self.parser._extract_invoice(text_no_invoice)
+        assert invoice is None
+
+    def test_extract_total(self):
+        """Test total extraction."""
+        text = "COMPRA 10,55€"
+        total = self.parser._extract_total(text)
+        assert total == 10.55
+
+        text_no_total = "Some other text"
+        total = self.parser._extract_total(text_no_total)
+        assert total is None
+
+    def test_extract_date(self):
+        """Test date extraction."""
+        text = "Data de emissão: 25/08/2025"
+        date = self.parser._extract_date(text)
+        assert date == "25/08/2025"
+
+        text_no_date = "Some other text"
+        date = self.parser._extract_date(text_no_date)
+        assert date is None

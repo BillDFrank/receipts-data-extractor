@@ -4,8 +4,6 @@ from pydantic import BaseModel
 
 class Product(BaseModel):
     """Represents a single product extracted from a receipt."""
-    market: Optional[str] = None
-    branch: str
     product_type: str
     product: str
     price: float
@@ -18,6 +16,9 @@ class Receipt(BaseModel):
     """Represents a complete receipt with all extracted products."""
     market: str
     branch: str
+    invoice: Optional[str] = None
+    total: Optional[float] = None
+    date: Optional[str] = None
     products: list[Product]
 
 

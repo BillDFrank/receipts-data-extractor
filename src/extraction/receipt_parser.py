@@ -31,6 +31,11 @@ class PingoDoceReceiptParser:
                     error_message="Could not extract branch information"
                 )
 
+            # Extract invoice, total, date
+            invoice = self._extract_invoice(text)
+            total = self._extract_total(text)
+            date = self._extract_date(text)
+
             # Extract products
             products = self._extract_products(text, branch)
 
@@ -43,6 +48,9 @@ class PingoDoceReceiptParser:
             receipt = Receipt(
                 market=self.market,
                 branch=branch,
+                invoice=invoice,
+                total=total,
+                date=date,
                 products=products
             )
 
@@ -66,6 +74,30 @@ class PingoDoceReceiptParser:
         branch_match = re.search(r'PD\s+([^\n]+)', text)
         if branch_match:
             return f"PD {branch_match.group(1).strip()}"
+        return None
+
+    def _extract_invoice(self, text: str) -> Optional[str]:
+        """Extract invoice number from receipt text."""
+        # Look for "Fatura Simplificada FS " followed by the invoice number
+        match = re.search(r'Fatura Simplificada\s+FS\s+([^\s]+)', text)
+        if match:
+            return f"FS {match.group(1)}"
+        return None
+
+    def _extract_total(self, text: str) -> Optional[float]:
+        """Extract total amount from receipt text."""
+        # Look for "COMPRA " followed by amount with €
+        match = re.search(r'COMPRA\s+([\d,]+)€', text)
+        if match:
+            return float(match.group(1).replace(',', '.'))
+        return None
+
+    def _extract_date(self, text: str) -> Optional[str]:
+        """Extract date from receipt text."""
+        # Look for "Data de emissão:" followed by date
+        match = re.search(r'Data de emissão:\s*([^\s]+)', text)
+        if match:
+            return match.group(1)
         return None
 
     def _extract_products(self, text: str, branch: str) -> List[Product]:
@@ -111,11 +143,7 @@ class PingoDoceReceiptParser:
 
     def _is_product_type_header(self, line: str) -> bool:
         """Check if a line is a product type header."""
-        product_types = [
-            'PEIXARIA', 'PADARIA/PASTELARIA', 'FRUTAS E VEGETAIS',
-            'CONGELADOS', 'MERCEARIA + PET FOOD', 'PRONTO A COMER'
-        ]
-        return any(pt in line for pt in product_types)
+        return line.isupper() and not re.search(r'\d', line) and not re.match(r'^[A-Z]\s', line)
 
     def _parse_discount_line(self, line: str) -> Optional[float]:
         """Parse a discount line and return the discount amount."""
@@ -164,14 +192,13 @@ class PingoDoceReceiptParser:
                     quantity_match = re.search(r'(\d+)', quantity_info)
                     quantity = float(quantity_match.group(1)) if quantity_match else 1.0
                     price = float(price.replace(',', '.'))
+                    product_name = f"{type2} {product_name}"
             else:  # Pattern 2
                 product_type_indicator, product_name, price = groups
                 quantity = 1.0
                 price = float(price.replace(',', '.'))
 
             return Product(
-                market=self.market,
-                branch=branch,
                 product_type=section_type,
                 product=product_name.strip(),
                 price=price,
