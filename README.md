@@ -1,14 +1,17 @@
-# Supermarket Receipt Extractor API
+# Pingo Receipt Parser API
 
-A FastAPI-based service for extracting product information from supermarket receipts, specifically designed for Pingo Doce receipts.
+A robust FastAPI-based service for extracting and parsing product information from Portuguese supermarket receipts, with specialized support for Pingo Doce receipts. Built with modern Python tools for reliable PDF processing and structured data extraction.
 
-## Features
+## ✨ Features
 
-- **PDF Text Extraction**: Extract text content from PDF receipt files
-- **Product Parsing**: Parse product information including name, price, quantity, and discounts
-- **FastAPI Integration**: RESTful API with automatic OpenAPI documentation
-- **Pydantic Models**: Type-safe data models for extracted information
-- **Comprehensive Testing**: Full test coverage for extraction logic and API endpoints
+- **PDF Text Extraction**: Advanced PDF processing using pdfplumber
+- **Intelligent Parsing**: Specialized parser for Pingo Doce receipt formats
+- **RESTful API**: Clean FastAPI endpoints with automatic OpenAPI documentation
+- **Type Safety**: Full Pydantic models for data validation and serialization
+- **Docker Ready**: Containerized deployment with Docker Compose
+- **Comprehensive Testing**: Full test coverage with pytest
+- **Production Ready**: Health checks, error handling, and logging
+- **CI/CD Ready**: Automated deployment with GitHub Actions
 
 ## Installation
 
@@ -155,22 +158,46 @@ FRUTAS E VEGETAIS
 C BANANA IMPORTADA 0,645 X 1,25 0,81
 ```
 
-## Project Structure
+## 🎯 Parsing Capabilities
+
+The parser intelligently extracts:
+- **Market & Branch**: Automatic detection of Pingo Doce locations
+- **Product Details**: Name, type, quantity, unit price, and total
+- **Discounts**: Multiple discount types and amounts
+- **Receipt Metadata**: Invoice number, date, and total amount
+- **Product Categories**: Organized by department (PEIXARIA, PADARIA, etc.)
+
+### Supported Product Formats
+1. **Quantity + Price**: `C PRODUCT_NAME QUANTITY X PRICE TOTAL`
+2. **Simple Items**: `E PRODUCT_NAME PRICE`
+3. **Weighted Items**: `C PRODUCT_NAME WEIGHT X PRICE TOTAL`
+4. **Complex Items**: `E C PRODUCT_NAME QUANTITY PRICE`
+
+## 🏗️ Architecture
+
+The application follows a clean, modular architecture:
 
 ```
 src/
 ├── api/
-│   └── main.py              # FastAPI application
+│   └── main.py              # FastAPI application with endpoints
 ├── extraction/
 │   ├── __init__.py
-│   ├── models.py            # Pydantic data models
-│   ├── pdf_extractor.py     # PDF text extraction utility
-│   └── receipt_parser.py    # Receipt parsing logic
+│   ├── models.py            # Pydantic data models and schemas
+│   ├── pdf_extractor.py     # PDF text extraction using pdfplumber
+│   └── receipt_parser.py    # Specialized Pingo Doce receipt parser
 └── tests/
     ├── test_api.py          # API endpoint tests
     ├── test_pdf_extractor.py # PDF extraction tests
     └── test_receipt_parser.py # Receipt parsing tests
 ```
+
+### Core Components
+
+- **API Layer**: FastAPI with automatic OpenAPI docs and validation
+- **Extraction Engine**: PDF processing and text extraction
+- **Parsing Engine**: Intelligent receipt parsing with regex patterns
+- **Data Models**: Type-safe data structures with Pydantic
 
 ## Development
 
@@ -195,14 +222,26 @@ When the server is running, visit:
 - **ReDoc**: `http://localhost:8000/redoc`
 - **OpenAPI Schema**: `http://localhost:8000/openapi.json`
 
-## Dependencies
+## 🛠️ Technology Stack
 
-- **FastAPI**: Modern web framework for building APIs
-- **pdfplumber**: PDF text extraction
-- **Pydantic**: Data validation and serialization
-- **uvicorn**: ASGI server
-- **pytest**: Testing framework
-- **httpx**: HTTP client for testing
+### Core Dependencies
+- **FastAPI**: High-performance async web framework
+- **pdfplumber**: Robust PDF text extraction library
+- **Pydantic v2**: Data validation and serialization with Python type hints
+- **uvicorn**: Lightning-fast ASGI server with auto-reload
+
+### Development & Testing
+- **pytest**: Comprehensive testing framework
+- **httpx**: Async HTTP client for API testing
+- **ruff**: Fast Python linter and formatter
+
+### Deployment
+- **Docker**: Containerization for consistent deployment
+- **Docker Compose**: Multi-container orchestration
+- **GitHub Actions**: CI/CD pipeline automation
+
+### Python Version
+- **Python 3.10+**: Leveraging modern Python features and performance improvements
 
 ## Error Handling
 
@@ -218,15 +257,44 @@ Error responses include detailed error messages for debugging.
 
 ### Docker
 
+#### Quick Start
 Build and run with Docker Compose:
 
 ```bash
+# Copy environment template
+cp .env.example .env
+
+# Edit .env file with your configuration
+nano .env
+
+# Build and run
 docker compose up --build
 ```
 
 The API will be available at `http://localhost:8000`
 
+#### Environment Configuration
+The application supports configuration via environment variables:
+
+- Copy `.env.example` to `.env`
+- Modify values according to your needs
+- The Docker Compose file automatically loads these variables
+
 ### GitHub Actions
+
+#### Automated Testing
+The project includes comprehensive CI/CD with automated testing:
+
+- **API Testing**: `test-api.yml` - Builds container, starts service, and tests all endpoints
+- **Deployment**: `main.yml` - Automated deployment to VPS on main branch pushes
+
+#### Testing Workflow Features
+- ✅ Docker image build verification
+- ✅ Health endpoint testing
+- ✅ API endpoint validation
+- ✅ Error handling verification
+- ✅ Unit test execution
+- ✅ Automatic cleanup
 
 Pushes to `main` branch automatically deploy to the VPS using GitHub Actions.
 
@@ -261,13 +329,12 @@ docker compose down
 docker compose up -d --build
 ```
 
-## Future Enhancements
+## 🚀 Future Enhancements
 
-- Support for additional supermarket chains
-- Batch processing of multiple receipts
-- Enhanced discount parsing
+- **Multi-Chain Support**: Extend parsing to other Portuguese supermarkets (Continente, Lidl, etc.)
+- **Batch Processing**: Handle multiple receipts in single API calls
 
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch

@@ -2,5 +2,11 @@ services:
   app:
     build: .
     ports:
-      - "8000:8000"
+      - "${PORT:-8000}:8000"
+    environment:
+      - APP_NAME=${APP_NAME:-Pingo Receipt Parser API}
+      - APP_VERSION=${APP_VERSION:-0.1.0}
+      - DEBUG=${DEBUG:-false}
+    env_file:
+      - .env
     restart: unless-stopped

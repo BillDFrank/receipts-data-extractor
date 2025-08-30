@@ -1,5 +1,4 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.responses import JSONResponse
 import uvicorn
 from ..extraction.pdf_extractor import PDFExtractor
 from ..extraction.receipt_parser import PingoDoceReceiptParser
