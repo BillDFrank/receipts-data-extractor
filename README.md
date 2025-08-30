@@ -13,12 +13,14 @@ A FastAPI-based service for extracting product information from supermarket rece
 ## Installation
 
 1. Clone the repository:
+
 ```bash
 git clone <repository-url>
 cd supermarket-transactions-extractor-from-pdf-1
 ```
 
 2. Install dependencies:
+
 ```bash
 pip install -r requirements.txt
 # or using uv
@@ -40,9 +42,11 @@ The API will be available at `http://localhost:8000`
 ### API Endpoints
 
 #### GET /health
+
 Health check endpoint.
 
 **Response:**
+
 ```json
 {
   "status": "healthy",
@@ -51,14 +55,17 @@ Health check endpoint.
 ```
 
 #### POST /extract
+
 Extract product information from a PDF receipt.
 
 **Request:**
+
 - Method: `POST`
 - Content-Type: `multipart/form-data`
 - Body: PDF file with key `file`
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -117,11 +124,13 @@ Artigos
 ### Product Line Formats
 
 1. **With quantity and total:**
+
    ```
    C PRODUCT_NAME QUANTITY X PRICE TOTAL
    ```
 
 2. **Simple price (quantity = 1):**
+
    ```
    E PRODUCT_NAME PRICE
    ```
@@ -181,6 +190,7 @@ pytest --cov=src --cov-report=html
 ### API Documentation
 
 When the server is running, visit:
+
 - **Swagger UI**: `http://localhost:8000/docs`
 - **ReDoc**: `http://localhost:8000/redoc`
 - **OpenAPI Schema**: `http://localhost:8000/openapi.json`
@@ -223,6 +233,7 @@ Pushes to `main` branch automatically deploy to the VPS using GitHub Actions.
 #### Required Secrets
 
 Set the following secrets in your GitHub repository:
+
 - `VPS_HOST`: Your VPS IP address or domain
 - `VPS_USERNAME`: SSH username
 - `VPS_SSH_KEY`: Private SSH key for authentication
@@ -230,6 +241,7 @@ Set the following secrets in your GitHub repository:
 #### Deployment Process
 
 The GitHub Actions workflow performs smart deployment:
+
 - Checks if the app is running and healthy
 - Backs up the current deployment
 - Updates the code
@@ -251,15 +263,8 @@ docker compose up -d --build
 ## Future Enhancements
 
 - Support for additional supermarket chains
-- Database integration for storing extracted data
 - Batch processing of multiple receipts
 - Enhanced discount parsing
-- Receipt image processing (OCR)
-- Web interface for receipt upload
-
-## License
-
-[Add your license information here]
 
 ## Contributing
 
