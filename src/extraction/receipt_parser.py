@@ -1,5 +1,5 @@
 import re
-from typing import List, Optional, Tuple
+from typing import List, Optional
 from .models import Product, Receipt, ExtractionResult
 
 

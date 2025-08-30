@@ -204,6 +204,50 @@ The API provides comprehensive error handling:
 
 Error responses include detailed error messages for debugging.
 
+## Deployment
+
+### Docker
+
+Build and run with Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+The API will be available at `http://localhost:8000`
+
+### GitHub Actions
+
+Pushes to `main` branch automatically deploy to the VPS using GitHub Actions.
+
+#### Required Secrets
+
+Set the following secrets in your GitHub repository:
+- `VPS_HOST`: Your VPS IP address or domain
+- `VPS_USERNAME`: SSH username
+- `VPS_SSH_KEY`: Private SSH key for authentication
+
+#### Deployment Process
+
+The GitHub Actions workflow performs smart deployment:
+- Checks if the app is running and healthy
+- Backs up the current deployment
+- Updates the code
+- Rebuilds and restarts the Docker container
+- Verifies the deployment with health checks
+- Cleans up unused Docker images
+
+#### Manual Deployment
+
+If needed, you can deploy manually:
+
+```bash
+cd /home/receipts-data-extractor/receipts-data-extractor
+git pull origin main
+docker compose down
+docker compose up -d --build
+```
+
 ## Future Enhancements
 
 - Support for additional supermarket chains
