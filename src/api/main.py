@@ -92,6 +92,47 @@ async def extract_receipts_batch(files: List[UploadFile] = File(...)):
     )
 
 
+@app.post("/extract", response_model=ExtractionResult)
+async def extract_receipt(file: UploadFile = File(...)):
+    """
+    Extract product information from uploaded PDF receipt.
+
+    Args:
+        file: PDF file containing the supermarket receipt
+
+    Returns:
+        ExtractionResult with parsed receipt data or error message
+    """
+    # Validate file type
+    if not file.filename.lower().endswith('.pdf'):
+        raise HTTPException(
+            status_code=400,
+            detail="Only PDF files are supported"
+        )
+
+    try:
+        # Read file content
+        pdf_content = await file.read()
+
+        # Extract text from PDF
+        text = pdf_extractor.extract_text_from_pdf(pdf_content)
+        if not text:
+            return ExtractionResult(
+                success=False,
+                error_message="Could not extract text from PDF"
+            )
+
+        # Parse receipt
+        result = receipt_parser.parse_receipt(text)
+        return result
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing receipt: {str(e)}"
+        )
+
+
 @app.get("/")
 async def root():
     """Root endpoint with API information."""
