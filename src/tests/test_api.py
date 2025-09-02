@@ -64,10 +64,68 @@ class TestAPI:
         # For now, we'll test the error handling path
         mock_pdf_content = b"%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n/Contents 4 0 R\n>>\nendobj\n4 0 obj\n<<\n/Length 44\n>>\nstream\nBT\n72 720 Td\n/F0 12 Tf\n(Hello World) Tj\nET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f\n0000000009 00000 n\n0000000058 00000 n\n0000000115 00000 n\n0000000200 00000 n\ntrailer\n<<\n/Size 5\n/Root 1 0 R\n>>\nstartxref\n284\n%%EOF"
 
-        files = {"file": ("test.pdf", BytesIO(mock_pdf_content), "application/pdf")}
+        files = {"file": ("test.pdf", BytesIO(
+            mock_pdf_content), "application/pdf")}
 
         response = self.client.post("/extract", files=files)
 
         # The response will depend on whether the mock PDF can be parsed
         # At minimum, it should not return a 500 error
         assert response.status_code in [200, 422]
+
+    def test_extract_batch_endpoint_no_files(self):
+        """Test extract-batch endpoint with no files provided."""
+        response = self.client.post("/extract-batch")
+
+        assert response.status_code == 400
+        data = response.json()
+        assert "No files provided" in data["detail"]
+
+    def test_extract_batch_endpoint_invalid_file_type(self):
+        """Test extract-batch endpoint with invalid file type."""
+        file_content = b"This is not a PDF file"
+        files = [("files", ("test.txt", BytesIO(file_content), "text/plain"))]
+
+        response = self.client.post("/extract-batch", files=files)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_files"] == 1
+        assert data["successful_extractions"] == 0
+        assert data["failed_extractions"] == 1
+        assert len(data["results"]) == 1
+        assert not data["results"][0]["success"]
+        assert "Only PDF files supported" in data["results"][0]["error_message"]
+
+    def test_extract_batch_endpoint_empty_files(self):
+        """Test extract-batch endpoint with empty files."""
+        files = [
+            ("files", ("empty1.pdf", BytesIO(b""), "application/pdf")),
+            ("files", ("empty2.pdf", BytesIO(b""), "application/pdf"))
+        ]
+
+        response = self.client.post("/extract-batch", files=files)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_files"] == 2
+        assert data["successful_extractions"] == 0
+        assert data["failed_extractions"] == 2
+        assert len(data["results"]) == 2
+
+    def test_extract_batch_endpoint_mixed_files(self):
+        """Test extract-batch endpoint with mix of valid and invalid files."""
+        mock_pdf_content = b"%PDF-1.4\n1 0 obj\n<<\n/Type /Catalog\n/Pages 2 0 R\n>>\nendobj\n2 0 obj\n<<\n/Type /Pages\n/Kids [3 0 R]\n/Count 1\n>>\nendobj\n3 0 obj\n<<\n/Type /Page\n/Parent 2 0 R\n/MediaBox [0 0 612 792]\n/Contents 4 0 R\n>>\nendobj\n4 0 obj\n<<\n/Length 44\n>>\nstream\nBT\n72 720 Td\n/F0 12 Tf\n(Hello World) Tj\nET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f\n0000000009 00000 n\n0000000058 00000 n\n0000000115 00000 n\n0000000200 00000 n\ntrailer\n<<\n/Size 5\n/Root 1 0 R\n>>\nstartxref\n284\n%%EOF"
+
+        files = [
+            ("files", ("test.pdf", BytesIO(mock_pdf_content), "application/pdf")),
+            ("files", ("test.txt", BytesIO(b"not pdf"), "text/plain"))
+        ]
+
+        response = self.client.post("/extract-batch", files=files)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_files"] == 2
+        assert data["failed_extractions"] == 1  # The text file should fail
+        assert len(data["results"]) == 2

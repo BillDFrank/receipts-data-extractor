@@ -29,6 +29,14 @@ class ExtractionResult(BaseModel):
     error_message: Optional[str] = None
 
 
+class BatchExtractionResult(BaseModel):
+    """Result of batch PDF extraction operation."""
+    results: list[ExtractionResult]
+    total_files: int
+    successful_extractions: int
+    failed_extractions: int
+
+
 class HealthResponse(BaseModel):
     """Health check response."""
     status: str
