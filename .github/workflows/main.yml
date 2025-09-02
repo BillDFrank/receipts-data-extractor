@@ -60,7 +60,7 @@ jobs:
             # Check if app is running and healthy
             APP_RUNNING=false
             
-            if docker compose ps --services --filter "status=running" | grep -q "app"; then
+            if docker compose ps --services --filter "status=running" | grep -q "app" || docker-compose ps --services --filter "status=running" | grep -q "app"; then
               if curl -f http://localhost:8000/health >/dev/null 2>&1; then
                 APP_RUNNING=true
                 echo "✅ App is running and healthy"
@@ -72,32 +72,53 @@ jobs:
             fi
 
             # Replace with new code
+            echo "Replacing with new code..."
             rm -rf /home/receipts-data-extractor/receipts-data-extractor/*
             cp -r /tmp/receipts-data-extractor-deploy/* /home/receipts-data-extractor/receipts-data-extractor/
             cd /home/receipts-data-extractor/receipts-data-extractor
+
+            # Verify files were copied
+            echo "Files in deployment directory:"
+            ls -la
 
             # Set proper permissions
             chmod +x *.sh 2>/dev/null || true
 
             # Stop the app service to update it
             echo "Stopping app service for update..."
-            docker compose stop app 2>/dev/null || true
-            docker compose rm -f app 2>/dev/null || true
+            docker compose stop app 2>/dev/null || docker-compose stop app 2>/dev/null || true
+            docker compose rm -f app 2>/dev/null || docker-compose rm -f app 2>/dev/null || true
 
             # Build the app service
             echo "Building app service..."
-            docker compose build app
+            docker compose build app || docker-compose build app
+
+            # Check if build was successful
+            if [ $? -eq 0 ]; then
+              echo "✅ Docker build successful"
+            else
+              echo "❌ Docker build failed"
+              exit 1
+            fi
 
             # Start the service
             echo "Starting app service..."
-            docker compose up -d app
+            docker compose up -d app || docker-compose up -d app
+
+            # Check if service started successfully
+            if [ $? -eq 0 ]; then
+              echo "✅ Docker service start command successful"
+            else
+              echo "❌ Docker service start command failed"
+              exit 1
+            fi
 
             # Wait for containers to start
             sleep 15
 
             # Verify containers are running
             echo "Container status:"
-            docker compose ps
+            docker compose ps || docker-compose ps
 
             # Clean up unused images
             rm -rf /tmp/receipts-data-extractor-deploy
@@ -105,4 +126,7 @@ jobs:
 
             # Test the deployment
             echo "Testing deployment..."
-            curl -f http://localhost:8000/health || echo "App not responding"
+            echo "Checking health endpoint..."
+            curl -v http://localhost:8000/health || echo "Health check failed"
+            echo "Checking root endpoint..."
+            curl -v http://localhost:8000/ || echo "Root endpoint failed"

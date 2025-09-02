@@ -95,6 +95,36 @@ jobs:
             exit 1
           fi
 
+      - name: Test extract-batch endpoint without files
+        run: |
+          echo "Testing extract-batch endpoint without files..."
+          response=$(curl -s -X POST "http://localhost:8000/extract-batch")
+
+          # Should return validation error
+          if echo "$response" | jq -e '.detail' >/dev/null 2>&1; then
+            echo "✅ Batch no files test passed (correctly returned validation error)"
+          else
+            echo "❌ Batch no files test failed"
+            exit 1
+          fi
+
+      - name: Test extract-batch endpoint with invalid files
+        run: |
+          echo "Testing extract-batch endpoint with invalid files..."
+          response=$(curl -s -X POST "http://localhost:8000/extract-batch" \
+            -H "Content-Type: multipart/form-data" \
+            -F "files=@README.md" \
+            -F "files=@pyproject.toml")
+
+          # Should return success with failed extractions
+          if echo "$response" | jq -e '.total_files == 2 and .failed_extractions >= 1' >/dev/null 2>&1; then
+            echo "✅ Batch invalid files test passed"
+          else
+            echo "❌ Batch invalid files test failed"
+            echo "Response: $response"
+            exit 1
+          fi
+
       - name: Run pytest tests
         run: |
           echo "Running pytest tests..."
@@ -116,4 +146,5 @@ jobs:
           echo "✅ Root endpoint working"
           echo "✅ File validation working"
           echo "✅ Error handling working"
+          echo "✅ Batch endpoint working"
           echo "✅ Unit tests passing"
