@@ -70,7 +70,20 @@ class PingoDoceReceiptParser:
 
     def _extract_branch(self, text: str) -> Optional[str]:
         """Extract branch name from receipt text."""
-        # Look for "PD " followed by branch name
+        lines = text.split('\n')
+
+        # Look for the first line before "Tel.:"
+        for line in lines:
+            line = line.strip()
+            if line and not line.startswith('Tel.:'):
+                # Skip empty lines and lines that start with "Tel.:"
+                if line:
+                    return line
+            elif line.startswith('Tel.:'):
+                # If we reach Tel.: without finding a branch, break
+                break
+
+        # Fallback to old method if new method doesn't work
         branch_match = re.search(r'PD\s+([^\n]+)', text)
         if branch_match:
             return f"PD {branch_match.group(1).strip()}"
@@ -97,7 +110,17 @@ class PingoDoceReceiptParser:
         # Look for "Data de emissão:" followed by date
         match = re.search(r'Data de emissão:\s*([^\s]+)', text)
         if match:
-            return match.group(1)
+            date_str = match.group(1)
+            # Handle different date formats
+            # Format 1: DD-MM-YYYY (e.g., 16-08-2025)
+            if re.match(r'\d{2}-\d{2}-\d{4}', date_str):
+                return date_str
+            # Format 2: DD/MM/YYYY (e.g., 16/08/2025) - convert to DD-MM-YYYY
+            elif re.match(r'\d{2}/\d{2}/\d{4}', date_str):
+                return date_str.replace('/', '-')
+            # Format 3: Other formats - return as is
+            else:
+                return date_str
         return None
 
     def _extract_products(self, text: str, branch: str) -> List[Product]:

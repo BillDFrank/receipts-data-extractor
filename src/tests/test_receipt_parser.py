@@ -22,9 +22,15 @@ class TestPingoDoceReceiptParser:
 
     def test_extract_branch(self):
         """Test branch extraction from receipt text."""
-        text = "PD PRELADA\nTel.: 226198120\nPingo Doce - Distribuição Alimentar, S.A."
-        branch = self.parser._extract_branch(text)
-        assert branch == "PD PRELADA"
+        # Test old format
+        text_old = "PD PRELADA\nTel.: 226198120\nPingo Doce - Distribuição Alimentar, S.A."
+        branch_old = self.parser._extract_branch(text_old)
+        assert branch_old == "PD PRELADA"
+
+        # Test new format like "go Doce Canidelo 2"
+        text_new = "go Doce Canidelo 2\nTel.: 227728010\nPingo Doce - Distribuição Alimentar, S.A."
+        branch_new = self.parser._extract_branch(text_new)
+        assert branch_new == "go Doce Canidelo 2"
 
     def test_parse_product_line_pattern1(self):
         """Test parsing product line with quantity and total."""
@@ -200,10 +206,17 @@ E PIZZA FRES PD CA415G 2,89"""
 
     def test_extract_date(self):
         """Test date extraction."""
-        text = "Data de emissão: 25/08/2025"
-        date = self.parser._extract_date(text)
-        assert date == "25/08/2025"
+        # Test DD/MM/YYYY format (should be converted to DD-MM-YYYY)
+        text_slash = "Data de emissão: 25/08/2025"
+        date_slash = self.parser._extract_date(text_slash)
+        assert date_slash == "25-08-2025"
 
+        # Test DD-MM-YYYY format (should remain as is)
+        text_dash = "Data de emissão: 16-08-2025"
+        date_dash = self.parser._extract_date(text_dash)
+        assert date_dash == "16-08-2025"
+
+        # Test no date
         text_no_date = "Some other text"
         date = self.parser._extract_date(text_no_date)
         assert date is None
