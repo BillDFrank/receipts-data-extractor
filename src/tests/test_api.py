@@ -1,4 +1,3 @@
-import pytest
 from fastapi.testclient import TestClient
 from io import BytesIO
 from src.api.main import app

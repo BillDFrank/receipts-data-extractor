@@ -3,8 +3,8 @@ from typing import List, Optional
 from .models import Product, Receipt, ExtractionResult
 
 
-class PingoDoceReceiptParser:
-    """Parser for Pingo Doce supermarket receipts."""
+class SupermarketReceiptParser:
+    """Parser for supermarket receipts (Pingo Doce, Continente, etc.)."""
 
     def __init__(self):
         self.market = None  # Will be detected dynamically
@@ -23,38 +23,22 @@ class PingoDoceReceiptParser:
             # Detect market dynamically
             self.market = self._detect_market(text)
 
-            # Extract branch name
-            branch = self._extract_branch(text)
-            if not branch:
+            if not self.market:
                 return ExtractionResult(
                     success=False,
-                    error_message="Could not extract branch information"
+                    error_message="Could not detect market from receipt"
                 )
 
-            # Extract invoice, total, date
-            invoice = self._extract_invoice(text)
-            total = self._extract_total(text)
-            date = self._extract_date(text)
-
-            # Extract products
-            products = self._extract_products(text, branch)
-
-            if not products:
+            # Route to appropriate parsing method based on market
+            if self.market == "Pingo Doce":
+                return self._parse_pingo_doce_receipt(text)
+            elif self.market == "Continente":
+                return self._parse_continente_receipt(text)
+            else:
                 return ExtractionResult(
                     success=False,
-                    error_message="No products found in receipt"
+                    error_message=f"Unsupported market: {self.market}"
                 )
-
-            receipt = Receipt(
-                market=self.market,
-                branch=branch,
-                invoice=invoice,
-                total=total,
-                date=date,
-                products=products
-            )
-
-            return ExtractionResult(success=True, receipt=receipt)
 
         except Exception as e:
             return ExtractionResult(
@@ -64,9 +48,84 @@ class PingoDoceReceiptParser:
 
     def _detect_market(self, text: str) -> Optional[str]:
         """Detect market name from receipt text."""
-        if "Pingo Doce" in text:
+        lines = text.split('\n')[:2]  # Check first 2 lines
+        first_two_lines = ' '.join(lines).upper()
+
+        if "CONTINENTE" in first_two_lines:
+            return "Continente"
+        elif "PINGO DOCE" in text.upper():
             return "Pingo Doce"
         return None
+
+    def _parse_pingo_doce_receipt(self, text: str) -> ExtractionResult:
+        """Parse Pingo Doce receipt text."""
+        # Extract branch name
+        branch = self._extract_branch(text)
+        if not branch:
+            return ExtractionResult(
+                success=False,
+                error_message="Could not extract branch information"
+            )
+
+        # Extract invoice, total, date
+        invoice = self._extract_invoice(text)
+        total = self._extract_total(text)
+        date = self._extract_date(text)
+
+        # Extract products
+        products = self._extract_products(text, branch)
+
+        if not products:
+            return ExtractionResult(
+                success=False,
+                error_message="No products found in receipt"
+            )
+
+        receipt = Receipt(
+            market=self.market,
+            branch=branch,
+            invoice=invoice,
+            total=total,
+            date=date,
+            products=products
+        )
+
+        return ExtractionResult(success=True, receipt=receipt)
+
+    def _parse_continente_receipt(self, text: str) -> ExtractionResult:
+        """Parse Continente receipt text."""
+        # Extract branch name (first line)
+        branch = self._extract_continente_branch(text)
+        if not branch:
+            return ExtractionResult(
+                success=False,
+                error_message="Could not extract branch information"
+            )
+
+        # Extract invoice, total, date
+        invoice = self._extract_continente_invoice(text)
+        total = self._extract_continente_total(text)
+        date = self._extract_continente_date(text)
+
+        # Extract products
+        products = self._extract_continente_products(text)
+
+        if not products:
+            return ExtractionResult(
+                success=False,
+                error_message="No products found in receipt"
+            )
+
+        receipt = Receipt(
+            market=self.market,
+            branch=branch,
+            invoice=invoice,
+            total=total,
+            date=date,
+            products=products
+        )
+
+        return ExtractionResult(success=True, receipt=receipt)
 
     def _extract_branch(self, text: str) -> Optional[str]:
         """Extract branch name from receipt text."""
@@ -76,7 +135,6 @@ class PingoDoceReceiptParser:
         for line in lines:
             line = line.strip()
             if line and not line.startswith('Tel.:'):
-                # Skip empty lines and lines that start with "Tel.:"
                 if line:
                     return line
             elif line.startswith('Tel.:'):
@@ -157,7 +215,8 @@ class PingoDoceReceiptParser:
 
             # Try to parse as a product line
             if current_section:
-                product = self._parse_product_line(line, current_section, branch)
+                product = self._parse_product_line(
+                    line, current_section, branch)
                 if product:
                     products.append(product)
                     last_product = product
@@ -199,7 +258,8 @@ class PingoDoceReceiptParser:
         # Example: "E C COLA ZERO 2X1,75L 3,69"
         pattern4 = r'^([A-Z])\s+([A-Z])\s+(.+?)\s+(.+?)\s+([\d,]+)$'
 
-        match = re.match(pattern1, line) or re.match(pattern3, line) or re.match(pattern2, line) or re.match(pattern4, line)
+        match = re.match(pattern1, line) or re.match(pattern3, line) or re.match(
+            pattern2, line) or re.match(pattern4, line)
 
         if match:
             groups = match.groups()
@@ -213,7 +273,8 @@ class PingoDoceReceiptParser:
                     product_type_indicator = f"{type1} {type2}"
                     # Extract quantity from format like "2X1,75L"
                     quantity_match = re.search(r'(\d+)', quantity_info)
-                    quantity = float(quantity_match.group(1)) if quantity_match else 1.0
+                    quantity = float(quantity_match.group(
+                        1)) if quantity_match else 1.0
                     price = float(price.replace(',', '.'))
                     product_name = f"{type2} {product_name}"
             else:  # Pattern 2
@@ -226,6 +287,170 @@ class PingoDoceReceiptParser:
                 product=product_name.strip(),
                 price=price,
                 quantity=quantity
+            )
+
+        return None
+
+    def _extract_continente_branch(self, text: str) -> Optional[str]:
+        """Extract branch name from Continente receipt (first line)."""
+        lines = text.split('\n')
+        if lines:
+            first_line = lines[0].strip()
+            if first_line:
+                return first_line
+        return None
+
+    def _extract_continente_invoice(self, text: str) -> Optional[str]:
+        """Extract invoice number from Continente receipt."""
+        # Look for "Nro:FS " followed by the invoice number
+        match = re.search(r'Nro:\s*FS\s+([^\s]+)', text)
+        if match:
+            return f"FS {match.group(1)}"
+        return None
+
+    def _extract_continente_total(self, text: str) -> Optional[float]:
+        """Extract total amount from Continente receipt."""
+        # Look for "TOTAL A PAGAR " followed by amount
+        match = re.search(r'TOTAL A PAGAR\s+([\d,]+)', text)
+        if match:
+            return float(match.group(1).replace(',', '.'))
+        return None
+
+    def _extract_continente_date(self, text: str) -> Optional[str]:
+        """Extract date from Continente receipt."""
+        # Look for date after invoice number in format DD/MM/YYYY
+        match = re.search(r'Nro:\s*FS\s+[^\s]+\s+(\d{2}/\d{2}/\d{4})', text)
+        if match:
+            return match.group(1).replace('/', '-')
+        return None
+
+    def _extract_continente_products(self, text: str) -> List[Product]:
+        """Extract all products from Continente receipt text."""
+        products = []
+        lines = text.split('\n')
+
+        current_section = None
+        parsing_products = False
+        pending_product = None
+
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+
+            # Check if this is a product type header (ends with :)
+            if line.endswith(':') and not line.startswith('('):
+                current_section = line.rstrip(':')
+                parsing_products = True
+                continue
+
+            # Stop parsing when we reach certain sections
+            if any(phrase in line.upper() for phrase in ['TOTAL A PAGAR', 'CARTAO CREDITO', 'IVA INCLUIDO']):
+                break
+
+            # Only parse products after we've found "IVA DESCRICAO VALOR"
+            if 'IVA DESCRICAO VALOR' in line.upper():
+                parsing_products = True
+                continue
+
+            if parsing_products and current_section:
+                # Check if this is a product line (starts with letter in parentheses)
+                if re.match(r'^\([A-Z]\)', line):
+                    # If we have a pending product, save it first
+                    if pending_product:
+                        products.append(pending_product)
+                        pending_product = None
+
+                    # Parse the product line
+                    product = self._parse_continente_product_line(
+                        line, current_section)
+                    if product:
+                        # Check if price is in the same line
+                        if product.price > 0:
+                            products.append(product)
+                        else:
+                            # Price might be in next line, keep as pending
+                            pending_product = product
+                elif pending_product and re.search(r'[\d,]+', line):
+                    # This might be the price/quantity line for the pending product
+                    updated_product = self._parse_continente_price_line(
+                        line, pending_product)
+                    if updated_product:
+                        products.append(updated_product)
+                        pending_product = None
+
+        # Add any remaining pending product
+        if pending_product:
+            products.append(pending_product)
+
+        return products
+
+    def _parse_continente_product_line(self, line: str, section_type: str) -> Optional[Product]:
+        """Parse a single product line from Continente receipt."""
+        # Skip lines that don't start with a letter in parentheses
+        if not re.match(r'^\([A-Z]\)', line):
+            return None
+
+        # Extract product name: everything after the letter in parentheses
+        product_match = re.match(r'^\([A-Z]\)\s*(.+?)\s*$', line)
+        if not product_match:
+            return None
+
+        product_name = product_match.group(1).strip()
+
+        # Check if there's a price in the same line
+        price_match = re.search(r'([\d,]+)$', product_name)
+        if price_match:
+            price_str = price_match.group(1)
+            # Remove price from product name
+            product_name = re.sub(r'\s*[\d,]+$', '', product_name).strip()
+            try:
+                price = float(price_str.replace(',', '.'))
+            except ValueError:
+                price = 0.0
+        else:
+            price = 0.0  # Price might be in next line
+
+        # Extract quantity if present in the same line
+        quantity = 1.0
+        if price > 0:  # Only check for quantity if price is in same line
+            quantity_match = re.search(r'(\d+)\s*X\s*[\d,]+', line)
+            if quantity_match:
+                quantity = float(quantity_match.group(1))
+
+        return Product(
+            product_type=section_type,
+            product=product_name.strip(),
+            price=price,
+            quantity=quantity
+        )
+
+    def _parse_continente_price_line(self, line: str, product: Product) -> Optional[Product]:
+        """Parse a price/quantity line that follows a product line."""
+        # Look for patterns like "3 X 0,50 1,50" or just "1,50"
+        quantity_price_match = re.search(
+            r'(\d+)\s*X\s*([\d,]+)\s*([\d,]+)', line)
+        if quantity_price_match:
+            quantity = float(quantity_price_match.group(1))
+            unit_price = float(quantity_price_match.group(2).replace(',', '.'))
+            total_price = float(
+                quantity_price_match.group(3).replace(',', '.'))
+            return Product(
+                product_type=product.product_type,
+                product=product.product,
+                price=unit_price,  # Use unit price instead of total price
+                quantity=quantity
+            )
+
+        # Look for just a price
+        price_match = re.search(r'^([\d,]+)$', line.strip())
+        if price_match:
+            price = float(price_match.group(1).replace(',', '.'))
+            return Product(
+                product_type=product.product_type,
+                product=product.product,
+                price=price,
+                quantity=product.quantity
             )
 
         return None

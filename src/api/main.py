@@ -2,7 +2,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 import uvicorn
 from typing import List
 from ..extraction.pdf_extractor import PDFExtractor
-from ..extraction.receipt_parser import PingoDoceReceiptParser
+from ..extraction.receipt_parser import SupermarketReceiptParser
 from ..extraction.models import ExtractionResult, BatchExtractionResult, HealthResponse
 
 app = FastAPI(
@@ -12,7 +12,7 @@ app = FastAPI(
 )
 
 pdf_extractor = PDFExtractor()
-receipt_parser = PingoDoceReceiptParser()
+receipt_parser = SupermarketReceiptParser()
 
 
 @app.get("/health", response_model=HealthResponse)

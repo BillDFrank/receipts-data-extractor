@@ -1,20 +1,22 @@
-import pytest
-from src.extraction.receipt_parser import PingoDoceReceiptParser
-from src.extraction.models import Product
+from src.extraction.receipt_parser import SupermarketReceiptParser
 
 
-class TestPingoDoceReceiptParser:
-    """Test cases for Pingo Doce receipt parser."""
+class TestSupermarketReceiptParser:
+    """Test cases for supermarket receipt parser."""
 
     def setup_method(self):
         """Set up test fixtures."""
-        self.parser = PingoDoceReceiptParser()
+        self.parser = SupermarketReceiptParser()
 
     def test_detect_market(self):
         """Test market detection from receipt text."""
         text_with_pingo_doce = "PD PRELADA\nTel.: 226198120\nPingo Doce - Distribuição Alimentar, S.A."
         market = self.parser._detect_market(text_with_pingo_doce)
         assert market == "Pingo Doce"
+
+        text_with_continente = "MCH Matosinhos\nMODELO CONTINENTE HIPERMERCADOS S.A."
+        market = self.parser._detect_market(text_with_continente)
+        assert market == "Continente"
 
         text_without_market = "Some other receipt\nTel.: 123456789\nOther Store"
         market = self.parser._detect_market(text_without_market)
@@ -36,7 +38,8 @@ class TestPingoDoceReceiptParser:
         """Test parsing product line with quantity and total."""
         self.parser.market = "Pingo Doce"
         line = "C TRANCHE SALMÃO UN150 2,000 X 3,69 7,38"
-        product = self.parser._parse_product_line(line, "PEIXARIA", "PD PRELADA")
+        product = self.parser._parse_product_line(
+            line, "PEIXARIA", "PD PRELADA")
 
         assert product is not None
         assert product.product == "TRANCHE SALMÃO UN150"
@@ -47,7 +50,8 @@ class TestPingoDoceReceiptParser:
     def test_parse_product_line_pattern2(self):
         """Test parsing simple product line with just price."""
         line = "E PÃO DE LEITE 1,99"
-        product = self.parser._parse_product_line(line, "PADARIA/PASTELARIA", "PD PRELADA")
+        product = self.parser._parse_product_line(
+            line, "PADARIA/PASTELARIA", "PD PRELADA")
 
         assert product is not None
         assert product.product == "PÃO DE LEITE"
@@ -57,7 +61,8 @@ class TestPingoDoceReceiptParser:
     def test_parse_product_line_pattern3(self):
         """Test parsing product line with weight quantity."""
         line = "C BANANA IMPORTADA 0,645 X 1,25 0,81"
-        product = self.parser._parse_product_line(line, "FRUTAS E VEGETAIS", "PD PRELADA")
+        product = self.parser._parse_product_line(
+            line, "FRUTAS E VEGETAIS", "PD PRELADA")
 
         assert product is not None
         assert product.product == "BANANA IMPORTADA"
@@ -88,9 +93,11 @@ class TestPingoDoceReceiptParser:
     def test_is_product_type_header(self):
         """Test product type header detection."""
         assert self.parser._is_product_type_header("PEIXARIA") is True
-        assert self.parser._is_product_type_header("PADARIA/PASTELARIA") is True
+        assert self.parser._is_product_type_header(
+            "PADARIA/PASTELARIA") is True
         assert self.parser._is_product_type_header("FRUTAS E VEGETAIS") is True
-        assert self.parser._is_product_type_header("BEBIDAS") is True  # New type
+        assert self.parser._is_product_type_header(
+            "BEBIDAS") is True  # New type
         assert self.parser._is_product_type_header("Regular text") is False
 
     def test_parse_receipt_pdf1(self):
@@ -173,8 +180,10 @@ E PIZZA FRES PD CA415G 2,89"""
         assert len(result.receipt.products) == 2
 
         # Check products
-        diges = next((p for p in result.receipt.products if "DIGES" in p.product), None)
-        pizza = next((p for p in result.receipt.products if "PIZZA" in p.product), None)
+        diges = next(
+            (p for p in result.receipt.products if "DIGES" in p.product), None)
+        pizza = next(
+            (p for p in result.receipt.products if "PIZZA" in p.product), None)
 
         assert diges is not None
         assert diges.price == 2.49

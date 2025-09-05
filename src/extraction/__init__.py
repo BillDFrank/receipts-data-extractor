@@ -2,7 +2,7 @@
 
 from .models import Product, Receipt, ExtractionResult, HealthResponse
 from .pdf_extractor import PDFExtractor
-from .receipt_parser import PingoDoceReceiptParser
+from .receipt_parser import SupermarketReceiptParser
 
 __all__ = [
     "Product",
@@ -10,5 +10,5 @@ __all__ = [
     "ExtractionResult",
     "HealthResponse",
     "PDFExtractor",
-    "PingoDoceReceiptParser"
+    "SupermarketReceiptParser"
 ]

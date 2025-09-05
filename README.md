@@ -1,12 +1,17 @@
 [![Test API](https://github.com/BillDFrank/receipts-data-extractor/actions/workflows/test-api.yml/badge.svg)](https://github.com/BillDFrank/receipts-data-extractor/actions/workflows/test-api.yml)
+[![Deployment](https://github.com/BillDFrank/receipts-data-extractor/actions/workflows/test-api.yml/badge.svg)](https://github.com/BillDFrank/receipts-data-extractor/actions/workflows/main.yml)
+
 # Supermarket Receipt Parser API
 
-A robust FastAPI-based service for extracting and parsing product information from Portuguese supermarket receipts, with specialized support for Pingo Doce receipts. Built with modern Python tools for reliable PDF processing and structured data extraction.
+A robust FastAPI-based service for extracting and parsing product information from Portuguese supermarket receipts, with specialized support for Pingo Doce and Continente receipts. Built with modern Python tools for reliable PDF processing and structured data extraction.
+
+**Live test: https://williamfrank.duckdns.org/projects/receipts-data-extractor/**
 
 ## ✨ Features
 
 - **PDF Text Extraction**: Advanced PDF processing using pdfplumber
-- **Intelligent Parsing**: Specialized parser for Pingo Doce receipt formats
+- **Multi-Chain Support**: Specialized parsers for Pingo Doce and Continente receipt formats
+- **Intelligent Market Detection**: Automatic detection of supermarket chain from receipt content
 - **RESTful API**: Clean FastAPI endpoints with automatic OpenAPI documentation
 - **Type Safety**: Full Pydantic models for data validation and serialization
 - **Docker Ready**: Containerized deployment with Docker Compose
@@ -76,16 +81,15 @@ Extract product information from a PDF receipt.
   "receipt": {
     "market": "Pingo Doce",
     "branch": "PD PRELADA",
+    "invoice": "FS 123456789",
+    "total": 15.87,
+    "date": "16-08-2025",
     "products": [
       {
-        "market": "Pingo Doce",
-        "branch": "PD PRELADA",
         "product_type": "PEIXARIA",
         "product": "TRANCHE SALMÃO UN150",
         "price": 3.69,
-        "quantity": 2.0,
-        "discount": null,
-        "discount2": null
+        "quantity": 2.0
       }
     ]
   }
@@ -101,78 +105,23 @@ curl -X POST "http://localhost:8000/extract" \
      -F "file=@receipt.pdf"
 ```
 
-### Using with Python
+## Supported Receipt Formats
 
-```python
-import requests
+The API automatically detects and supports multiple Portuguese supermarket chains:
 
-url = "http://localhost:8000/extract"
-with open("receipt.pdf", "rb") as file:
-    response = requests.post(url, files={"file": file})
-
-print(response.json())
-```
-
-## Supported Receipt Format
-
-Currently supports Pingo Doce supermarket receipts with the following format:
-
-```
-PD [BRANCH_NAME]
-[Header Information]
-Artigos
-[PRODUCT_TYPE]
-[Product Lines...]
-```
-
-### Product Line Formats
-
-1. **With quantity and total:**
-
-   ```
-   C PRODUCT_NAME QUANTITY X PRICE TOTAL
-   ```
-
-2. **Simple price (quantity = 1):**
-
-   ```
-   E PRODUCT_NAME PRICE
-   ```
-
-3. **With weight quantity:**
-   ```
-   C PRODUCT_NAME WEIGHT X PRICE TOTAL
-   ```
-
-### Example Receipt Structure
-
-```
-PD PRELADA
-Tel.: 226198120
-Pingo Doce - Distribuição Alimentar, S.A.
-Artigos
-PEIXARIA
-C TRANCHE SALMÃO UN150 2,000 X 3,69 7,38
-PADARIA/PASTELARIA
-E PÃO DE LEITE 1,99
-FRUTAS E VEGETAIS
-C BANANA IMPORTADA 0,645 X 1,25 0,81
-```
+- **Pingo Doce**: Traditional format with "PD" prefix and department-based sections
+- **Continente**: Modern format with category headers and multi-line product entries
 
 ## 🎯 Parsing Capabilities
 
 The parser intelligently extracts:
-- **Market & Branch**: Automatic detection of Pingo Doce locations
-- **Product Details**: Name, type, quantity, unit price, and total
-- **Discounts**: Multiple discount types and amounts
-- **Receipt Metadata**: Invoice number, date, and total amount
-- **Product Categories**: Organized by department (PEIXARIA, PADARIA, etc.)
 
-### Supported Product Formats
-1. **Quantity + Price**: `C PRODUCT_NAME QUANTITY X PRICE TOTAL`
-2. **Simple Items**: `E PRODUCT_NAME PRICE`
-3. **Weighted Items**: `C PRODUCT_NAME WEIGHT X PRICE TOTAL`
-4. **Complex Items**: `E C PRODUCT_NAME QUANTITY PRICE`
+- **Market Detection**: Automatic identification of Pingo Doce vs Continente receipts
+- **Market & Branch**: Location information for both supermarket chains
+- **Product Details**: Name, type, quantity, and unit price for all products
+- **Receipt Metadata**: Invoice number, date, and total amount
+- **Product Categories**: Organized by department for both chains
+- **Multi-Format Support**: Handles different receipt layouts and product formats
 
 ## 🏗️ Architecture
 
@@ -186,7 +135,7 @@ src/
 │   ├── __init__.py
 │   ├── models.py            # Pydantic data models and schemas
 │   ├── pdf_extractor.py     # PDF text extraction using pdfplumber
-│   └── receipt_parser.py    # Specialized Pingo Doce receipt parser
+│   └── receipt_parser.py    # Multi-chain receipt parser (Pingo Doce & Continente)
 └── tests/
     ├── test_api.py          # API endpoint tests
     ├── test_pdf_extractor.py # PDF extraction tests
@@ -197,7 +146,8 @@ src/
 
 - **API Layer**: FastAPI with automatic OpenAPI docs and validation
 - **Extraction Engine**: PDF processing and text extraction
-- **Parsing Engine**: Intelligent receipt parsing with regex patterns
+- **Multi-Chain Parser**: Intelligent receipt parsing with specialized logic for each supermarket chain
+- **Market Detection**: Automatic supermarket identification and routing
 - **Data Models**: Type-safe data structures with Pydantic
 
 ## Development
@@ -226,22 +176,26 @@ When the server is running, visit:
 ## 🛠️ Technology Stack
 
 ### Core Dependencies
+
 - **FastAPI**: High-performance async web framework
 - **pdfplumber**: Robust PDF text extraction library
 - **Pydantic v2**: Data validation and serialization with Python type hints
 - **uvicorn**: Lightning-fast ASGI server with auto-reload
 
 ### Development & Testing
+
 - **pytest**: Comprehensive testing framework
 - **httpx**: Async HTTP client for API testing
 - **ruff**: Fast Python linter and formatter
 
 ### Deployment
+
 - **Docker**: Containerization for consistent deployment
 - **Docker Compose**: Multi-container orchestration
 - **GitHub Actions**: CI/CD pipeline automation
 
 ### Python Version
+
 - **Python 3.10+**: Leveraging modern Python features and performance improvements
 
 ## Error Handling
@@ -259,6 +213,7 @@ Error responses include detailed error messages for debugging.
 ### Docker
 
 #### Quick Start
+
 Build and run with Docker Compose:
 
 ```bash
@@ -275,6 +230,7 @@ docker compose up --build
 The API will be available at `http://localhost:8000`
 
 #### Environment Configuration
+
 The application supports configuration via environment variables:
 
 - Copy `.env.example` to `.env`
@@ -284,12 +240,14 @@ The application supports configuration via environment variables:
 ### GitHub Actions
 
 #### Automated Testing
+
 The project includes comprehensive CI/CD with automated testing:
 
 - **API Testing**: `test-api.yml` - Builds container, starts service, and tests all endpoints
 - **Deployment**: `main.yml` - Automated deployment to VPS on main branch pushes
 
 #### Testing Workflow Features
+
 - ✅ Docker image build verification
 - ✅ Health endpoint testing
 - ✅ API endpoint validation
@@ -332,8 +290,8 @@ docker compose up -d --build
 
 ## 🚀 Future Enhancements
 
-- **Multi-Chain Support**: Extend parsing to other Portuguese supermarkets (Continente, Lidl, etc.)
-- **Batch Processing**: Handle multiple receipts in single API calls
+- **Additional Chains**: Extend parsing to other Portuguese supermarkets (Lidl, Aldi, etc.)
+- **OCR Integration**: Add OCR support for scanned receipts
 
 ## 🤝 Contributing
 

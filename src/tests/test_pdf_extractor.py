@@ -1,5 +1,3 @@
-import pytest
-from io import BytesIO
 from src.extraction.pdf_extractor import PDFExtractor
 
 
