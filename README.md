@@ -1,5 +1,5 @@
 [![Test API](https://github.com/BillDFrank/receipts-data-extractor/actions/workflows/test-api.yml/badge.svg)](https://github.com/BillDFrank/receipts-data-extractor/actions/workflows/test-api.yml)
-[![Deployment](https://github.com/BillDFrank/receipts-data-extractor/actions/workflows/test-api.yml/badge.svg)](https://github.com/BillDFrank/receipts-data-extractor/actions/workflows/main.yml)
+[![Deployment](https://github.com/BillDFrank/receipts-data-extractor/actions/workflows/main.yml/badge.svg)](https://github.com/BillDFrank/receipts-data-extractor/actions/workflows/main.yml)
 
 # Supermarket Receipt Parser API
 
