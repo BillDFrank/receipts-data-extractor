@@ -170,12 +170,12 @@ class SupermarketReceiptParser:
         if match:
             date_str = match.group(1)
             # Handle different date formats
-            # Format 1: DD-MM-YYYY (e.g., 16-08-2025)
+            # Format 1: DD-MM-YYYY (e.g., 16-08-2025) - convert to DD/MM/YYYY
             if re.match(r'\d{2}-\d{2}-\d{4}', date_str):
-                return date_str
-            # Format 2: DD/MM/YYYY (e.g., 16/08/2025) - convert to DD-MM-YYYY
+                return date_str.replace('-', '/')
+            # Format 2: DD/MM/YYYY (e.g., 16/08/2025) - keep as is
             elif re.match(r'\d{2}/\d{2}/\d{4}', date_str):
-                return date_str.replace('/', '-')
+                return date_str
             # Format 3: Other formats - return as is
             else:
                 return date_str
@@ -318,10 +318,14 @@ class SupermarketReceiptParser:
 
     def _extract_continente_date(self, text: str) -> Optional[str]:
         """Extract date from Continente receipt."""
-        # Look for date after invoice number in format DD/MM/YYYY
-        match = re.search(r'Nro:\s*FS\s+[^\s]+\s+(\d{2}/\d{2}/\d{4})', text)
+        # Look for date after invoice number in format DD/MM/YYYY or DD-MM-YYYY
+        match = re.search(r'Nro:\s*FS\s+[^\s]+\s+(\d{2}[/-]\d{2}[/-]\d{4})', text)
         if match:
-            return match.group(1).replace('/', '-')
+            date_str = match.group(1)
+            # Convert DD-MM-YYYY to DD/MM/YYYY if needed
+            if '-' in date_str:
+                date_str = date_str.replace('-', '/')
+            return date_str  # Return DD/MM/YYYY format
         return None
 
     def _extract_continente_products(self, text: str) -> List[Product]:

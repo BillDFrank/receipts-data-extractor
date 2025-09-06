@@ -215,17 +215,34 @@ E PIZZA FRES PD CA415G 2,89"""
 
     def test_extract_date(self):
         """Test date extraction."""
-        # Test DD/MM/YYYY format (should be converted to DD-MM-YYYY)
+        # Test DD/MM/YYYY format (should remain as is)
         text_slash = "Data de emissão: 25/08/2025"
         date_slash = self.parser._extract_date(text_slash)
-        assert date_slash == "25-08-2025"
+        assert date_slash == "25/08/2025"
 
-        # Test DD-MM-YYYY format (should remain as is)
+        # Test DD-MM-YYYY format (should be converted to DD/MM/YYYY)
         text_dash = "Data de emissão: 16-08-2025"
         date_dash = self.parser._extract_date(text_dash)
-        assert date_dash == "16-08-2025"
+        assert date_dash == "16/08/2025"
 
         # Test no date
         text_no_date = "Some other text"
         date = self.parser._extract_date(text_no_date)
+        assert date is None
+
+    def test_extract_continente_date(self):
+        """Test Continente date extraction."""
+        # Test DD/MM/YYYY format after invoice number
+        text_slash = "Nro: FS 04890942308181520/067139 25/08/2025"
+        date_slash = self.parser._extract_continente_date(text_slash)
+        assert date_slash == "25/08/2025"
+
+        # Test DD-MM-YYYY format (should be converted to DD/MM/YYYY)
+        text_dash = "Nro: FS 04890942308181520/067139 16-08-2025"
+        date_dash = self.parser._extract_continente_date(text_dash)
+        assert date_dash == "16/08/2025"
+
+        # Test no date
+        text_no_date = "Some other text"
+        date = self.parser._extract_continente_date(text_no_date)
         assert date is None
