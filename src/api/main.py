@@ -8,7 +8,7 @@ from ..extraction.models import ExtractionResult, BatchExtractionResult, HealthR
 app = FastAPI(
     title="Supermarket Receipt Extractor API",
     description="API for extracting product information from supermarket receipts",
-    version="1.0.3"
+    version="1.0.4"
 )
 
 pdf_extractor = PDFExtractor()
@@ -138,7 +138,7 @@ async def root():
     """Root endpoint with API information."""
     return {
         "message": "Supermarket Receipt Extractor API",
-        "version": "1.0.0",
+        "version": "1.0.4",
         "endpoints": {
             "GET /health": "Health check",
             "POST /extract": "Extract receipt data from single PDF",

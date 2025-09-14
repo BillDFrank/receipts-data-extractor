@@ -157,10 +157,30 @@ class SupermarketReceiptParser:
 
     def _extract_total(self, text: str) -> Optional[float]:
         """Extract total amount from receipt text."""
-        # Look for "COMPRA " followed by amount with €
-        match = re.search(r'COMPRA\s+([\d,]+)€', text)
+        # Try multiple patterns in order of preference
+
+        # Pattern 1: TOTAL A PAGAR (most reliable)
+        match = re.search(r'TOTAL A PAGAR\s+([\d,]+)', text)
         if match:
             return float(match.group(1).replace(',', '.'))
+
+        # Pattern 2: TOTAL PAGO
+        match = re.search(r'TOTAL PAGO\s+([\d,]+)', text)
+        if match:
+            return float(match.group(1).replace(',', '.'))
+
+        # Pattern 3: COMPRA (handle space in decimal)
+        match = re.search(r'COMPRA\s+([\d]+),\s*([\d]+)€', text)
+        if match:
+            whole, decimal = match.groups()
+            return float(f"{whole}.{decimal}")
+
+        # Pattern 4: COMPRA (fallback for other formats)
+        match = re.search(r'COMPRA\s+([\d,\s]+)€', text)
+        if match:
+            amount = match.group(1).replace(',', '.').replace(' ', '')
+            return float(amount)
+
         return None
 
     def _extract_date(self, text: str) -> Optional[str]:
@@ -319,7 +339,8 @@ class SupermarketReceiptParser:
     def _extract_continente_date(self, text: str) -> Optional[str]:
         """Extract date from Continente receipt."""
         # Look for date after invoice number in format DD/MM/YYYY or DD-MM-YYYY
-        match = re.search(r'Nro:\s*FS\s+[^\s]+\s+(\d{2}[/-]\d{2}[/-]\d{4})', text)
+        match = re.search(
+            r'Nro:\s*FS\s+[^\s]+\s+(\d{2}[/-]\d{2}[/-]\d{4})', text)
         if match:
             date_str = match.group(1)
             # Convert DD-MM-YYYY to DD/MM/YYYY if needed

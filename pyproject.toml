@@ -1,6 +1,6 @@
 [project]
 name = "supermarket-receipt-parser"
-version = "1.0.3"
+version = "1.0.4"
 description = "FastAPI service for extracting and parsing product information from Portuguese supermarket receipts, with specialized support for Pingo Doce and Continente"
 readme = "README.md"
 requires-python = ">=3.10"
