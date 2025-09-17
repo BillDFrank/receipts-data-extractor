@@ -241,9 +241,10 @@ class SupermarketReceiptParser:
         total_paid = None
 
         # TOTAL POUPANÇA (discount)
-        m = re.search(r'TOTAL\s+POUPAN[ÇC]A\s*\(?([\d.,]+)\)?', text, re.IGNORECASE)
+        m = re.search(r'TOTAL\s+POUPAN[ÇC]A\s*(?:\(\s*(-?[\d.,]+)\s*\)|(-?[\d.,]+))', text, re.IGNORECASE)
         if m:
-            total_discount = self._parse_amount(m.group(1))
+            amount_str = m.group(1) if m.group(1) is not None else m.group(2)
+            total_discount = self._parse_amount(amount_str)
 
         # TOTAL A PAGAR (amount due)
         m = re.search(r'TOTAL\s+A\s+PAGAR\s+([\d.,]+)', text, re.IGNORECASE)
