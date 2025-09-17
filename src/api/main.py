@@ -8,7 +8,7 @@ from ..extraction.models import ExtractionResult, BatchExtractionResult, HealthR
 app = FastAPI(
     title="Supermarket Receipt Extractor API",
     description="API for extracting product information from supermarket receipts",
-    version="1.0.4"
+    version="1.1.0"
 )
 
 pdf_extractor = PDFExtractor()

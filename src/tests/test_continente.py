@@ -1,35 +1,51 @@
 from src.extraction.receipt_parser import SupermarketReceiptParser
 
-parser = SupermarketReceiptParser()
-sample_text = """MCH Matosinhos
+
+def test_continente_totals_layout1():
+    parser = SupermarketReceiptParser()
+    text = """MCH Matosinhos
 MODELO CONTINENTE HIPERMERCADOS S.A.
 Nro:FS AAA218/024041 11/08/2025 18:05
 IVA DESCRICAO VALOR
 Soft Drinks:
 (B) AGUA S/GAS LUSO 50CL
 3 X 0,50 1,50
-Higiene:
-(A) RESGUARDO CONT BEBE 15UN 5,99
-Laticinios/Beb. Veg.:
-(A) LEITE M/GORDO CNT 6*1L (R) 5,16
-Beleza:
-(C) LAM. DESC. BLUE II SLALOM 10UN 6,99
-Padaria:
-(C) FOLHADO SALSICHA C/QUEIJO UN
-2 X 1,09 2,18
-TOTAL A PAGAR 61,20"""
+TOTAL A PAGAR 61,20
+Cartao Credito 61,20
+Total de descontos e poupancas 5,31
+%IVA Total Liq. IVA Total
+(A) 6,00% 15,21 0,91 16,12
+(B) 13,00% 1,33 0,17 1,50
+(C) 23,00% 35,43 8,15 43,58
+"""
+    result = parser.parse_receipt(text)
+    assert result.success
+    assert result.receipt.market == "Continente"
+    # total should be inferred: paid + discount
+    assert result.receipt.total_paid == 61.20
+    assert result.receipt.total_discount == 5.31
+    assert result.receipt.total == 66.51
 
-result = parser.parse_receipt(sample_text)
-print('Success:', result.success)
-if result.success:
-    print('Market:', result.receipt.market)
-    print('Branch:', result.receipt.branch)
-    print('Invoice:', result.receipt.invoice)
-    print('Total:', result.receipt.total)
-    print('Date:', result.receipt.date)
-    print('Products:', len(result.receipt.products))
-    for i, product in enumerate(result.receipt.products, 1):
-        print(
-            f"  {i}. {product.product_type}: {product.product} - {product.price}€ (x{product.quantity})")
-else:
-    print('Error:', result.error_message)
+
+def test_continente_totals_layout2():
+    parser = SupermarketReceiptParser()
+    text = """MCH Matosinhos
+MODELO CONTINENTE HIPERMERCADOS S.A.
+Nro:FS AAA218/024041 11/08/2025 18:05
+IVA DESCRICAO VALOR
+Soft Drinks:
+(B) AGUA S/GAS LUSO 50CL
+3 X 0,50 1,50
+SUBTOTAL 24,53
+Desconto Cartao Utilizado 5,00
+TOTAL A PAGAR 19,53
+Cartao Credito 19,53
+Total de descontos e poupancas 1,55
+"""
+    result = parser.parse_receipt(text)
+    assert result.success
+    assert result.receipt.market == "Continente"
+    # prefer SUBTOTAL for total and compute discount as SUBTOTAL - TOTAL A PAGAR
+    assert result.receipt.total == 24.53
+    assert result.receipt.total_paid == 19.53
+    assert result.receipt.total_discount == 5.00
