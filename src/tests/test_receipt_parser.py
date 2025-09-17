@@ -213,6 +213,54 @@ E PIZZA FRES PD CA415G 2,89"""
         total = self.parser._extract_total(text_no_total)
         assert total is None
 
+    def test_pingo_doce_totals_extraction(self):
+        """Test extracting total, total discount, and total paid from Pingo Doce summary."""
+        sample = """Resumo
+TOTAL 54,63
+TOTAL POUPANÇA (5,60)
+TOTAL A PAGAR 49,03
+Pagamentos
+TOTAL PAGO 49,03
+"""
+        total, discount, paid = self.parser._extract_pingo_doce_totals(sample)
+        assert total == 54.63
+        assert discount == 5.60
+        assert paid == 49.03
+
+    def test_parse_pingo_doce_receipt_sets_totals(self):
+        text = """go Doce Canidelo 2
+Tel.: 227728010
+Pingo Doce - Distribuição Alimentar, S.A.
+Artigos
+PADARIA/PASTELARIA
+E PÃO DE LEITE 1,99
+Resumo
+TOTAL 54,63
+TOTAL POUPANÇA (5,60)
+TOTAL A PAGAR 49,03
+Pagamentos
+TOTAL PAGO 49,03
+"""
+        result = self.parser.parse_receipt(text)
+        assert result.success
+        assert result.receipt.total == 54.63
+        assert result.receipt.total_discount == 5.60
+        assert result.receipt.total_paid == 49.03
+
+    def test_continente_total_paid_extraction(self):
+        text = """MCH Matosinhos
+MODELO CONTINENTE HIPERMERCADOS S.A.
+Nro:FS AAA218/024041 11/08/2025 18:05
+IVA DESCRICAO VALOR
+Soft Drinks:
+(B) AGUA S/GAS LUSO 50CL
+3 X 0,50 1,50
+TOTAL A PAGAR 61,20
+"""
+        result = self.parser.parse_receipt(text)
+        assert result.success
+        assert result.receipt.total_paid == 61.20
+
     def test_extract_date(self):
         """Test date extraction."""
         # Test DD/MM/YYYY format (should remain as is)

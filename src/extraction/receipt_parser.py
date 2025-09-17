@@ -67,9 +67,14 @@ class SupermarketReceiptParser:
                 error_message="Could not extract branch information"
             )
 
-        # Extract invoice, total, date
+        # Extract invoice, totals, date
         invoice = self._extract_invoice(text)
-        total = self._extract_total(text)
+        total, total_discount, total_paid = self._extract_pingo_doce_totals(text)
+        # Backward-compatible fallback if summary not found
+        if total is None and total_discount is None and total_paid is None:
+            # Old behavior: treat detected value as total_paid
+            legacy_total = self._extract_total(text)
+            total_paid = legacy_total
         date = self._extract_date(text)
 
         # Extract products
@@ -86,6 +91,8 @@ class SupermarketReceiptParser:
             branch=branch,
             invoice=invoice,
             total=total,
+            total_discount=total_discount,
+            total_paid=total_paid,
             date=date,
             products=products
         )
@@ -102,9 +109,9 @@ class SupermarketReceiptParser:
                 error_message="Could not extract branch information"
             )
 
-        # Extract invoice, total, date
+        # Extract invoice, totals, date
         invoice = self._extract_continente_invoice(text)
-        total = self._extract_continente_total(text)
+        total, total_discount, total_paid = self._extract_continente_totals(text)
         date = self._extract_continente_date(text)
 
         # Extract products
@@ -121,6 +128,8 @@ class SupermarketReceiptParser:
             branch=branch,
             invoice=invoice,
             total=total,
+            total_discount=total_discount,
+            total_paid=total_paid,
             date=date,
             products=products
         )
@@ -146,6 +155,113 @@ class SupermarketReceiptParser:
         if branch_match:
             return f"PD {branch_match.group(1).strip()}"
         return None
+
+    def _extract_continente_totals(self, text: str) -> tuple[Optional[float], Optional[float], Optional[float]]:
+        """Extract TOTAL, total discount, and total paid from Continente receipts.
+
+        Handles multiple layouts:
+        - Layout with SUBTOTAL + TOTAL A PAGAR (+ optional Desconto lines)
+        - Layout with TOTAL A PAGAR + Total de descontos e poupanças
+        Returns: (total, total_discount, total_paid)
+        """
+        total = None
+        total_discount = None
+        total_paid = None
+
+        # Extract key figures
+        # SUBTOTAL (pre-discount total)
+        m = re.search(r'\bSUBTOTAL\b\s+([\d.,]+)', text, re.IGNORECASE)
+        if m:
+            total = self._parse_amount(m.group(1))
+
+        # TOTAL A PAGAR (amount due)
+        m = re.search(r'\bTOTAL\s+A\s+PAGAR\b\s+([\d.,]+)', text, re.IGNORECASE)
+        if m:
+            total_paid = self._parse_amount(m.group(1))
+        else:
+            # Fallback to TOTAL PAGO
+            m2 = re.search(r'\bTOTAL\s+PAGO\b\s+([\d.,]+)', text, re.IGNORECASE)
+            if m2:
+                total_paid = self._parse_amount(m2.group(1))
+
+        # Total de descontos e poupancas (accent-insensitive)
+        m = re.search(r'Total\s+de\s+descontos\s+e\s+poupan[cç]as\s+([\d.,]+)', text, re.IGNORECASE)
+        if m:
+            total_discount = self._parse_amount(m.group(1))
+
+        # Desconto Cartao/Cartão Utilizado (applied discount line)
+        if total_discount is None:
+            m = re.search(r'Desconto\s+Cart[aã]o\s+Utilizado\s+([\d.,]+)', text, re.IGNORECASE)
+            if m:
+                total_discount = self._parse_amount(m.group(1))
+
+        # If we have SUBTOTAL and TOTAL A PAGAR, prefer computing discount from them
+        if total is not None and total_paid is not None:
+            computed_discount = round(total - total_paid, 2)
+            # Only set if positive/zero and makes sense
+            if computed_discount >= 0:
+                total_discount = computed_discount
+        else:
+            # If no SUBTOTAL, but we have paid and discount, we can infer total
+            if total is None and total_paid is not None and total_discount is not None:
+                total = round(total_paid + total_discount, 2)
+
+        return total, total_discount, total_paid
+
+    def _parse_amount(self, amount_str: str) -> Optional[float]:
+        """Parse a European-formatted monetary string to float.
+
+        Handles thousands separators and decimal commas, parentheses, and euro symbol.
+        """
+        if not amount_str:
+            return None
+        s = amount_str.strip()
+        # Remove euro sign and spaces
+        s = s.replace('€', '').replace(' ', '')
+        # Remove parentheses if present
+        if s.startswith('(') and s.endswith(')'):
+            s = s[1:-1]
+        # If both '.' and ',' exist, assume '.' are thousands separators
+        if ',' in s and '.' in s:
+            s = s.replace('.', '')
+        # Use '.' as decimal separator
+        s = s.replace(',', '.')
+        try:
+            return float(s)
+        except ValueError:
+            return None
+
+    def _extract_pingo_doce_totals(self, text: str) -> tuple[Optional[float], Optional[float], Optional[float]]:
+        """Extract TOTAL, TOTAL POUPANÇA, and TOTAL A PAGAR/PAGO from Pingo Doce receipts.
+
+        Returns a tuple: (total, total_discount, total_paid)
+        """
+        total = None
+        total_discount = None
+        total_paid = None
+
+        # TOTAL POUPANÇA (discount)
+        m = re.search(r'TOTAL\s+POUPAN[ÇC]A\s*\(?([\d.,]+)\)?', text, re.IGNORECASE)
+        if m:
+            total_discount = self._parse_amount(m.group(1))
+
+        # TOTAL A PAGAR (amount due)
+        m = re.search(r'TOTAL\s+A\s+PAGAR\s+([\d.,]+)', text, re.IGNORECASE)
+        if m:
+            total_paid = self._parse_amount(m.group(1))
+
+        # TOTAL PAGO (paid) as fallback if A PAGAR missing
+        if total_paid is None:
+            m = re.search(r'TOTAL\s+PAGO\s+([\d.,]+)', text, re.IGNORECASE)
+            if m:
+                total_paid = self._parse_amount(m.group(1))
+
+        # TOTAL (gross) — ensure we don't capture A PAGAR/POUPANÇA/PAGO
+        m = re.search(r'\bTOTAL\b(?!\s+(?:A\s+PAGAR|POUPAN|PAGO))\s+([\d.,]+)', text, re.IGNORECASE)
+        if m:
+            total = self._parse_amount(m.group(1))
+
+        return total, total_discount, total_paid
 
     def _extract_invoice(self, text: str) -> Optional[str]:
         """Extract invoice number from receipt text."""
@@ -331,9 +447,9 @@ class SupermarketReceiptParser:
     def _extract_continente_total(self, text: str) -> Optional[float]:
         """Extract total amount from Continente receipt."""
         # Look for "TOTAL A PAGAR " followed by amount
-        match = re.search(r'TOTAL A PAGAR\s+([\d,]+)', text)
+        match = re.search(r'TOTAL\s+A\s+PAGAR\s+([\d.,]+)', text, re.IGNORECASE)
         if match:
-            return float(match.group(1).replace(',', '.'))
+            return self._parse_amount(match.group(1))
         return None
 
     def _extract_continente_date(self, text: str) -> Optional[str]:

@@ -18,6 +18,8 @@ class Receipt(BaseModel):
     branch: str
     invoice: Optional[str] = None
     total: Optional[float] = None
+    total_discount: Optional[float] = None
+    total_paid: Optional[float] = None
     date: Optional[str] = None
     products: list[Product]
 
