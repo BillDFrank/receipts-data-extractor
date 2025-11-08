@@ -13,4 +13,5 @@ dependencies = [
     "pytest>=7.4.0",
     "httpx>=0.25.0",
     "ruff>=0.12.11",
+    "gunicorn>=21.2.0",
 ]
