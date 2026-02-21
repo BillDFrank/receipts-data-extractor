@@ -63,6 +63,7 @@ az webapp create \
 4. Click **Save**
 
 Alternatively, use Azure CLI:
+
 ```bash
 az webapp config set \
   --resource-group receipts-extractor-rg \
@@ -83,21 +84,36 @@ az webapp config appsettings set \
 
 ## Step 3: Set Up GitHub Actions Deployment
 
-### Get Publish Profile
+### Get Publish Profile (CRITICAL STEP!)
 
-1. In Azure Portal, go to your Web App
-2. Click **"Get publish profile"** in the Overview page
-3. This will download an XML file
-4. Copy the entire contents of this file
+1. In Azure Portal, go to your Web App (e.g., `receipts-data-extractor`)
+2. In the Overview page, click the **"Download publish profile"** button at the top
+   - It's a button in the toolbar, NOT in the sidebar
+3. This will download a file named `<your-app-name>.PublishSettings.xml`
+4. Open this XML file in a text editor
+5. Copy the **ENTIRE contents** of the file (all the XML, from `<?xml` to `</publishData>`)
 
-### Add Secret to GitHub
+### Add Secret to GitHub (REQUIRED FOR DEPLOYMENT!)
 
-1. Go to your GitHub repository
-2. Navigate to **Settings > Secrets and variables > Actions**
-3. Click **"New repository secret"**
-4. Name: `AZUREAPPSERVICE_PUBLISHPROFILE`
-5. Value: Paste the publish profile XML content
+**This is the step that fixes the "No credentials found" error!**
+
+1. Go to your GitHub repository: `https://github.com/BillDFrank/receipts-data-extractor`
+2. Click on **Settings** (repository settings, not your account settings)
+3. In the left sidebar, click **Secrets and variables** → **Actions**
+4. Click the green **"New repository secret"** button
+5. Fill in:
+   - **Name**: `AZUREAPPSERVICE_PUBLISHPROFILE` (must be EXACTLY this name)
+   - **Secret**: Paste the entire XML content from the publish profile file
 6. Click **"Add secret"**
+
+**✅ Verification**: After adding, you should see `AZUREAPPSERVICE_PUBLISHPROFILE` in your list of secrets.
+
+⚠️ **Common Mistakes to Avoid:**
+
+- Don't paste only part of the XML file
+- Don't add extra spaces or newlines
+- Make sure the secret name is spelled exactly right
+- Don't confuse repository Settings with your profile settings
 
 ### Update Workflow Configuration
 
@@ -105,8 +121,8 @@ az webapp config appsettings set \
 2. Change the `AZURE_WEBAPP_NAME` environment variable to your actual app name:
    ```yaml
    env:
-     AZURE_WEBAPP_NAME: receipts-extractor-app  # Change this to your app name
-     PYTHON_VERSION: '3.10'
+     AZURE_WEBAPP_NAME: receipts-extractor-app # Change this to your app name
+     PYTHON_VERSION: "3.10"
    ```
 
 ## Step 4: Deploy
@@ -139,14 +155,33 @@ After deployment completes:
 
 ## Troubleshooting
 
+### Error: "No credentials found. Add an Azure login action..."
+
+**This means the GitHub secret is missing or incorrectly configured.**
+
+**Solution:**
+
+1. Verify the secret exists:
+   - Go to GitHub: Settings → Secrets and variables → Actions
+   - Check that `AZUREAPPSERVICE_PUBLISHPROFILE` is listed
+2. If missing, follow "Step 3: Set Up GitHub Actions Deployment" above
+3. If it exists but deployment still fails:
+   - Delete the old secret
+   - Re-download the publish profile from Azure Portal
+   - Create a new secret with the fresh publish profile content
+4. Make sure you're downloading the publish profile from the correct Azure Web App
+5. Ensure the `AZURE_WEBAPP_NAME` in the workflow matches your actual app name
+
 ### View Application Logs
 
 #### Using Azure Portal:
+
 1. Go to your Web App
 2. Navigate to **Monitoring > Log stream**
 3. View real-time logs
 
 #### Using Azure CLI:
+
 ```bash
 az webapp log tail \
   --resource-group receipts-extractor-rg \
@@ -156,11 +191,13 @@ az webapp log tail \
 ### Common Issues
 
 1. **Application fails to start**
+
    - Check the startup command is correct
    - Verify all dependencies are in `pyproject.toml`
    - Check application logs for errors
 
 2. **500 Internal Server Error**
+
    - Enable diagnostic logging
    - Check if all required packages are installed
    - Verify environment variables are set correctly
