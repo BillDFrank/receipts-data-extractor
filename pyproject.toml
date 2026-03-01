@@ -1,17 +1,13 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "supermarket-receipt-parser"
-version = "1.0.4"
-description = "FastAPI service for extracting and parsing product information from Portuguese supermarket receipts, with specialized support for Pingo Doce and Continente"
-readme = "README.md"
-requires-python = ">=3.10"
-dependencies = [
-    "pdfplumber>=0.11.7",
-    "fastapi>=0.104.1",
-    "uvicorn[standard]>=0.24.0",
-    "pydantic>=2.5.0",
-    "python-multipart>=0.0.6",
-    "pytest>=7.4.0",
-    "httpx>=0.25.0",
-    "ruff>=0.12.11",
-    "gunicorn>=21.2.0",
-]
+name = "receipts-data-extractor"
+version = "0.1.0"
+description = "Extract structured data from receipts (images/PDF) using OCR and parsing heuristics/ML."
+authors = [{name = "You", email = "you@example.com"}]
+requires-python = ">=3.8"
+
+[project.scripts]
+rde = "receipts_data_extractor.cli:main"

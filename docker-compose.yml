@@ -7,4 +7,8 @@ services:
       - APP_NAME=${APP_NAME:-Pingo Receipt Parser API}
       - APP_VERSION=${APP_VERSION:-0.1.0}
       - DEBUG=${DEBUG:-false}
+      - MLFLOW_TRACKING_URI=http://mlflow:5001
     restart: unless-stopped
+networks:
+  mlflow-net:
+    external: true
